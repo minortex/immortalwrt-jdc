@@ -4,7 +4,6 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-#include <dt-bindings/leds/common.h>
 #include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
@@ -16,7 +15,7 @@
 		led-failsafe = &led_power;
 		led-running = &led_power;
 		led-upgrade = &led_power;
-		label-mac-device = &gmac1;
+		label-mac-device = &wan;
 	};
 
 	gpio-export {
@@ -33,8 +32,7 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			function = LED_FUNCTION_POWER;
-			color = <LED_COLOR_ID_GREEN>;
+			label = "green:power";
 			gpios = <&gpio 6 GPIO_ACTIVE_HIGH>;
 		};
 
@@ -44,14 +42,12 @@
 		};
 
 		wlan {
-			function = LED_FUNCTION_WLAN;
-			color = <LED_COLOR_ID_GREEN>;
+			label = "green:wlan";
 			gpios = <&gpio 7 GPIO_ACTIVE_HIGH>;
 		};
 
 		wps {
-			function = LED_FUNCTION_WPS;
-			color = <LED_COLOR_ID_GREEN>;
+			label = "green:wps";
 			gpios = <&gpio 12 GPIO_ACTIVE_HIGH>;
 		};
 	};
@@ -92,32 +88,10 @@
 				read-only;
 			};
 
-			partition@40000 {
+			factory: partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x30000>;
 				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					eeprom_factory_0: eeprom@0 {
-						reg = <0x0 0x4da8>;
-					};
-
-					eeprom_factory_8000: eeprom@8000 {
-						reg = <0x8000 0x4da8>;
-					};
-
-					macaddr_factory_10007: macaddr@10007 {
-						reg = <0x10007 0x6>;
-					};
-
-					macaddr_factory_1000d: macaddr@1000d {
-						reg = <0x1000d 0x6>;
-					};
-				};
 			};
 
 			partition@70000 {
@@ -139,8 +113,7 @@
 	wifi@0,0 {
 		compatible = "mediatek,mt76";
 		reg = <0x0000 0 0 0 0>;
-		nvmem-cells = <&eeprom_factory_0>;
-		nvmem-cell-names = "eeprom";
+		mediatek,mtd-eeprom = <&factory 0x0000>;
 		ieee80211-freq-limit = <2400000 2500000>;
 	};
 };
@@ -149,8 +122,7 @@
 	wifi@0,0 {
 		compatible = "mediatek,mt76";
 		reg = <0x0000 0 0 0 0>;
-		nvmem-cells = <&eeprom_factory_8000>;
-		nvmem-cell-names = "eeprom";
+		mediatek,mtd-eeprom = <&factory 0x8000>;
 		ieee80211-freq-limit = <5000000 6000000>;
 	};
 };
@@ -160,21 +132,15 @@
 	nvmem-cell-names = "mac-address";
 };
 
-&gmac1 {
-	status = "okay";
-	label = "wan";
-	phy-handle = <&ethphy0>;
-
-	nvmem-cells = <&macaddr_factory_1000d>;
-	nvmem-cell-names = "mac-address";
-};
-
-&ethphy0 {
-	/delete-property/ interrupts;
-};
-
 &switch0 {
 	ports {
+		wan: port@0 {
+			status = "okay";
+			label = "wan";
+			nvmem-cells = <&macaddr_factory_1000d>;
+			nvmem-cell-names = "mac-address";
+		};
+
 		port@1 {
 			status = "okay";
 			label = "lan";
@@ -186,5 +152,19 @@
 	gpio {
 		groups = "jtag", "uart2", "uart3", "wdt";
 		function = "gpio";
+	};
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_10007: macaddr@10007 {
+		reg = <0x10007 0x6>;
+	};
+
+	macaddr_factory_1000d: macaddr@1000d {
+		reg = <0x1000d 0x6>;
 	};
 };

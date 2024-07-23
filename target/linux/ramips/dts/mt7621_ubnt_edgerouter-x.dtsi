@@ -19,48 +19,68 @@
 	};
 };
 
+&ethernet {
+ 	pinctrl-0 = <&mdio_pins>, <&rgmii1_pins>;
+ };
+
 &gmac0 {
-	nvmem-cells = <&macaddr_factory_22 0>;
+	nvmem-cells = <&macaddr_factory_22>;
 	nvmem-cell-names = "mac-address";
-	label = "dsa";
+};
+
+&gmac1 {
+	status = "disabled";
 };
 
 &switch0 {
-	ports {
-		port@0 {
-			status = "okay";
-			label = "eth0";
-		};
+	/* must delete compatible property */
+	/delete-property/ compatible;
+};
 
-		port@1 {
-			status = "okay";
-			label = "eth1";
-			nvmem-cells = <&macaddr_factory_22 1>;
-			nvmem-cell-names = "mac-address";
-		};
+&hnat {
+        mtketh-wan = "eth0.2";
+        mtketh-ppd = "eth0.1";
+        mtketh-lan = "eth0";
+	ext-devices = "wlan0","wlan1","rax0","ra0", "rai0","apclii0","apclix0", "apcli0";
+        mtketh-max-gmac = <1>;
+        status = "okay";
+};
 
-		port@2 {
-			status = "okay";
-			label = "eth2";
-			nvmem-cells = <&macaddr_factory_22 2>;
-			nvmem-cell-names = "mac-address";
-		};
+&gsw {
+	mediatek,mdio = <&mdio>;
+	mediatek,portmap = "wllll";
+	mediatek,mcm;
+	mt7530,direct-phy-access;
 
-		port@3 {
-			status = "okay";
-			label = "eth3";
-			nvmem-cells = <&macaddr_factory_22 3>;
-			nvmem-cell-names = "mac-address";
-		};
+	resets = <&rstctrl 2>;
+	reset-names = "mcm";
 
-		port@4 {
-			status = "okay";
-			label = "eth4";
-			nvmem-cells = <&macaddr_factory_22 4>;
-			nvmem-cell-names = "mac-address";
+	port5: port@5 {
+		compatible = "mediatek,mt753x-port";
+		reg = <5>;
+		phy-mode = "rgmii";
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
 		};
 	};
+
+	port6: port@6 {
+		compatible = "mediatek,mt753x-port";
+		reg = <6>;
+		phy-mode = "rgmii";
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
+		};
+	};
+
+	mdio-bus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
+
 
 &nand {
 	status = "okay";
@@ -82,21 +102,9 @@
 			read-only;
 		};
 
-		partition@e0000 {
+		factory: partition@e0000 {
 			label = "factory";
 			reg = <0xe0000 0x60000>;
-
-			nvmem-layout {
-				compatible = "fixed-layout";
-				#address-cells = <1>;
-				#size-cells = <1>;
-
-				macaddr_factory_22: macaddr@22 {
-					compatible = "mac-base";
-					reg = <0x22 0x6>;
-					#nvmem-cell-cells = <1>;
-				};
-			};
 		};
 
 		partition@140000 {
@@ -118,7 +126,7 @@
 
 &state_default {
 	gpio {
-		groups = "uart2", "uart3", "pcie", "jtag";
+		groups = "uart2", "uart3", "pcie", "rgmii2", "jtag";
 		function = "gpio";
 	};
 };
@@ -153,4 +161,14 @@
 
 &xhci {
 	status = "disabled";
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_22: macaddr@22 {
+		reg = <0x22 0x6>;
+	};
 };

@@ -2,7 +2,6 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-#include <dt-bindings/leds/common.h>
 #include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
@@ -38,14 +37,12 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			function = LED_FUNCTION_POWER;
-			color = <LED_COLOR_ID_GREEN>;
+			label = "green:power";
 			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			function = LED_FUNCTION_WLAN;
-			color = <LED_COLOR_ID_AMBER>;
+			label = "amber:wlan";
 			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		};
 
@@ -77,40 +74,16 @@
 				read-only;
 			};
 
-			partition@40000 {
-				label = "factory";
+			factory: partition@40000 {
 				reg = <0x00040000 0x00010000>;
+				label = "factory";
 				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					eeprom_factory_0: eeprom@0 {
-						reg = <0x0 0x200>;
-					};
-
-					eeprom_factory_8000: eeprom@8000 {
-						reg = <0x8000 0x200>;
-					};
-				};
 			};
 
-			partition@50000 {
-				label = "devdata";
+			devdata: partition@50000 {
 				reg = <0x00050000 0x00020000>;
+				label = "devdata";
 				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					macaddr_devdata_d: macaddr@d {
-						reg = <0xd 0x6>;
-					};
-				};
 			};
 
 			partition@70000 {
@@ -175,8 +148,8 @@
 };
 
 &wmac {
-	nvmem-cells = <&eeprom_factory_0>;
-	nvmem-cell-names = "eeprom";
+	status = "okay";
+	ralink,mtd-eeprom = <&factory 0x0>;
 };
 
 &pci {
@@ -190,8 +163,7 @@
 		compatible = "pci0,0";
 		reg = <0x10000 0 0 0 0>;
 		ralink,5ghz = <0>;
-		nvmem-cells = <&eeprom_factory_8000>;
-		nvmem-cell-names = "eeprom";
+		ralink,mtd-eeprom = <&factory 0x8000>;
 	};
 };
 
@@ -201,4 +173,14 @@
 
 &ohci {
 	status = "okay";
+};
+
+&devdata {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_devdata_d: macaddr@d {
+		reg = <0xd 0x6>;
+	};
 };

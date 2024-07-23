@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/version.h>
 #include <linux/gpio/consumer.h>
 #include <linux/gpio/driver.h>
 #include <linux/pinctrl/pinconf.h>
@@ -385,6 +386,11 @@ static const struct pinconf_ops aw9523_pinconf_ops = {
 	.is_generic = true,
 };
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 5, 0)
+#define GPIO_LINE_DIRECTION_IN	1
+#define GPIO_LINE_DIRECTION_OUT	0
+#endif
+
 /*
  * aw9523_get_pin_direction - Get pin direction
  * @regmap: Regmap structure
@@ -430,6 +436,11 @@ static int aw9523_get_port_state(struct regmap *regmap, u8 pin,
 
 	return regmap_read(regmap, reg, state);
 }
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 5, 0)
+#undef GPIO_LINE_DIRECTION_IN
+#undef GPIO_LINE_DIRECTION_OUT
+#endif
 
 static int aw9523_gpio_irq_type(struct irq_data *d, unsigned int type)
 {
@@ -809,7 +820,7 @@ static int aw9523_init_gpiochip(struct aw9523 *awi, unsigned int npins)
 	gpiochip->set_multiple = aw9523_gpio_set_multiple;
 	gpiochip->set_config = gpiochip_generic_config;
 	gpiochip->parent = dev;
-	gpiochip->fwnode = dev->fwnode;
+	gpiochip->of_node = dev->of_node;
 	gpiochip->owner = THIS_MODULE;
 	gpiochip->can_sleep = true;
 
@@ -983,7 +994,8 @@ static int aw9523_hw_init(struct aw9523 *awi)
 	return regmap_reinit_cache(awi->regmap, &aw9523_regmap);
 }
 
-static int aw9523_probe(struct i2c_client *client)
+static int aw9523_probe(struct i2c_client *client,
+			const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
 	struct pinctrl_desc *pdesc;
@@ -1095,11 +1107,6 @@ static int aw9523_remove(struct i2c_client *client)
 	return 0;
 }
 
-static void aw9523_remove_void(struct i2c_client *client)
-{
-	aw9523_remove(client);
-}
-
 static const struct i2c_device_id aw9523_i2c_id_table[] = {
 	{ "aw9523_i2c", 0 },
 	{ }
@@ -1117,7 +1124,7 @@ static struct i2c_driver aw9523_driver = {
 		.of_match_table = of_aw9523_i2c_match,
 	},
 	.probe = aw9523_probe,
-	.remove = aw9523_remove_void,
+	.remove = aw9523_remove,
 	.id_table = aw9523_i2c_id_table,
 };
 module_i2c_driver(aw9523_driver);
