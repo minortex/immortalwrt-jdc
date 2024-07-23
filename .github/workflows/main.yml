@@ -30,7 +30,7 @@ jobs:
         ./scripts/feeds install -a
     - name: Build
       run: |
-        make -j$(nproc) download
+        make -j$(nproc) download || make -j1 download
         make -j$(nproc) || make -j1 V=s
     - name: Upload firmware
       uses: actions/upload-artifact@v2
